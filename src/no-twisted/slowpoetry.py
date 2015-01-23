@@ -1,6 +1,5 @@
 # This is the blocking version of the Slow Poetry Server.
-import socket, time, os
-import optparse
+import socket, time, os, optparse
 
 def parse_args():
     usage = """usage: %prog [options] poetry-file
