@@ -4,7 +4,7 @@ import socket, optparse, errno, select
 def parse_args():
     usage = """usage: %prog port1 [port2] [port3]
 
-This is client to get poetry, blocking edition
+This is client to get poetry, none blocking edition
 Run it like this:
 
   python blockingclient.py 10000 10001 10002
