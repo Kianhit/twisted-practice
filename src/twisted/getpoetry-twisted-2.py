@@ -40,36 +40,29 @@ Run it like this:
 
 
 class PoetryProtocol(Protocol):
-    poem = ''
-    task_num = 0
+    poem = ''    
     
     def dataReceived(self, data):
         self.poem += data
-        print 'Task %d received %d bytes' % (self.task_num, len(data))
     
     def connectionLost(self, reason):
-        self.factory.poemFinished(self.task_num, self.poem)
+        self.factory.poemFinished(self.poem)
 
 class PoetryClientFactory(ClientFactory):
-    task_num = 1
-    protocol = PoetryProtocol
+    protocol = PoetryProtocol # tell base class what proto to build
     
     def __init__(self, poetry_count):
         self.poetry_count = poetry_count
-        self.poems = {}
-        
-    def buildProtocol(self, addr):
-        proto = ClientFactory.buildProtocol(self, addr)
-        proto.task_num = self.task_num
-        self.task_num += 1
-        return proto
+        self.poems = []
     
     def clientConnectionFailed(self, connector, reason):
-        print 'Failed to connect to :' , connector.getDestination() 
+        print 'Failed to connect to :' , connector.getDestination()
+        self.poemFinished() 
     
-    def poemFinished(self, task_num, poem):
-        print 'Task %d finished receiving data' % task_num
-        self.poems[task_num] = poem
+    def poemFinished(self, poem=None):
+        if poem is not None:
+            self.poems.append(poem)
+        
         self.poetry_count -= 1
         
         if self.poetry_count == 0:
@@ -78,14 +71,11 @@ class PoetryClientFactory(ClientFactory):
             reactor.stop()
     
     def report(self):
-        # print self.poems
-        for i in self.poems:
-            print 'Task %d: %d bytes of a poetry' % (i, len(self.poems[i]))
+        for poem in self.poems:
+            print poem
         
 def poetry_main():
     addresses = parse_args()
-
-    start = datetime.datetime.now()
 
     factory = PoetryClientFactory(len(addresses))
 
@@ -94,13 +84,7 @@ def poetry_main():
     for address in addresses:
         host, port = address
         reactor.connectTCP(host, port, factory)
-
     reactor.run()
-
-    elapsed = datetime.datetime.now() - start
-
-    print 'Got %d poems in %s' % (len(addresses), elapsed)
-
-
+    
 if __name__ == '__main__':
     poetry_main()
