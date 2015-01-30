@@ -21,7 +21,7 @@ Run it like this:
     parser.add_option('-n', '--num_bytes', type='int', default=100, help=help)
     
     help = "number of seconds between sending bytes"
-    parser.add_option('-d', '--delay', type='float', default=0.7, help=help)
+    parser.add_option('-d', '--delay', type='float', default=0.1, help=help)
     
     (options, args) = parser.parse_args()
     

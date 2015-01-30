@@ -2,7 +2,7 @@
 
 # NOTE: This should not be used as the basis for production code.
 
-import datetime, optparse, traceback
+import optparse, sys
 from twisted.internet.protocol import Protocol, ClientFactory
 
 
@@ -40,52 +40,76 @@ Run it like this:
 
 
 class PoetryProtocol(Protocol):
+    """Protocol of twisted to receive a poem"""
     poem = ''    
     
     def dataReceived(self, data):
-        #traceback.print_stack()
         self.poem += data
     
     def connectionLost(self, reason):
-        self.factory.poemFinished(self.poem)
+        self.poemReceived(self.poem)
+        
+    def poemReceived(self, poem):
+        self.factory.poemFinished(poem)
 
 class PoetryClientFactory(ClientFactory):
+    """protocol factory of twisted to create protocol instances """
     protocol = PoetryProtocol # tell base class what proto to build
     
-    def __init__(self, poetry_count):
-        self.poetry_count = poetry_count
-        self.poems = []
+    def __init__(self, callback, errback):
+        self.callback = callback
+        self.errback = errback
     
     def clientConnectionFailed(self, connector, reason):
-        print 'Failed to connect to :' , connector.getDestination()
-        self.poemFinished() 
+        self.errback(reason) 
     
     def poemFinished(self, poem=None):
-        if poem is not None:
-            self.poems.append(poem)
-        
-        self.poetry_count -= 1
-        
-        if self.poetry_count == 0:
-            self.report()
-            from twisted.internet import reactor
-            reactor.stop()
+        self.callback(poem)
+
+def get_poetry(host, port, callback, errback):
+    """
+    Download a poem from the given host and port and invoke
+ 
+      callback(poem)
+ 
+    when the poem is complete. If there is a failure, invoke:
+ 
+      errback(err)
+ 
+    instead, where err is a twisted.python.failure.Failure instance.
+    """
+    factory = PoetryClientFactory(callback, errback)
+    from twisted.internet import reactor
+    reactor.connectTCP(host, port, factory)
     
-    def report(self):
-        for poem in self.poems:
-            print poem
-        
 def poetry_main():
     addresses = parse_args()
-
-    factory = PoetryClientFactory(len(addresses))
-
+    poems = []
+    errors = []
+    
+    def got_poem(poem):
+        """a callback for getting poems"""
+        poems.append(poem)
+        poem_done()
+        
+    def poem_failed(err):
+        """a errback for getting poems when exception"""
+        print >>sys.stderr, 'Poem failed:', err
+        errors.append(err)
+        poem_done()
+        
+    def poem_done():
+        if len(poems) + len(errors) == len(addresses):
+            reactor.stop()
+              
     from twisted.internet import reactor
-
     for address in addresses:
         host, port = address
-        reactor.connectTCP(host, port, factory)
-    reactor.run()
+        get_poetry(host, port, got_poem, poem_failed)
     
+    reactor.run()
+    for poem in poems:
+        print poem
+        
 if __name__ == '__main__':
     poetry_main()
