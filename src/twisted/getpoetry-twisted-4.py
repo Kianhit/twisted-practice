@@ -4,12 +4,13 @@
 
 import optparse, sys
 from twisted.internet.protocol import Protocol, ClientFactory
+from twisted.internet import defer
 
 
 def parse_args():
     usage = """usage: %prog [options] [hostname]:port ...
 
-This is the Get Poetry Now! client, Twisted version 3.0.
+This is the Get Poetry Now! client, Twisted version 4.0 (a defered version).
 Run it like this:
 
   python getpoetry-twisted-2.py port1 port2 port3 ...
@@ -56,31 +57,30 @@ class PoetryClientFactory(ClientFactory):
     """protocol factory of twisted to create protocol instances """
     protocol = PoetryProtocol # tell base class what proto to build
     
-    def __init__(self, callback, errback):
-        self.callback = callback
-        self.errback = errback
+    def __init__(self, deferred):
+        self.deferred = deferred
     
     def clientConnectionFailed(self, connector, reason):
-        self.errback(reason) 
+        if self.deferred is not None:
+            d, self.deferred = self.deferred, None
+            d.errback(reason) 
     
     def poemFinished(self, poem=None):
-        self.callback(poem)
+        if self.deferred is not None:
+            d, self.deferred = self.deferred, None
+            d.callback(poem)
 
-def get_poetry(host, port, callback, errback):
+def get_poetry(host, port):
     """
-    Download a poem from the given host and port and invoke
- 
-      callback(poem)
- 
-    when the poem is complete. If there is a failure, invoke:
- 
-      errback(err)
- 
-    instead, where err is a twisted.python.failure.Failure instance.
+    Download a poem from the given host and port. This function
+    returns a Deferred which will be fired with the complete text of
+    the poem or a Failure if the poem could not be downloaded.
     """
-    factory = PoetryClientFactory(callback, errback)
+    d = defer.Deferred()
+    factory = PoetryClientFactory(d)
     from twisted.internet import reactor
     reactor.connectTCP(host, port, factory)
+    return d
     
 def poetry_main():
     addresses = parse_args()
@@ -90,22 +90,23 @@ def poetry_main():
     def got_poem(poem):
         """a callback for getting poems"""
         poems.append(poem)
-        poem_done()
         
     def poem_failed(err):
         """a errback for getting poems when exception"""
         print >>sys.stderr, 'Poem failed:', err
         errors.append(err)
-        poem_done()
         
-    def poem_done():
+    def poem_done(_):
         if len(poems) + len(errors) == len(addresses):
             reactor.stop()
               
     from twisted.internet import reactor
     for address in addresses:
         host, port = address
-        get_poetry(host, port, got_poem, poem_failed)
+        d = get_poetry(host, port)
+        d.addCallbacks(got_poem, poem_failed)
+        d.addBoth(poem_done)
+        
     
     reactor.run()
     for poem in poems:
