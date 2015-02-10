@@ -148,12 +148,7 @@ def poetry_main():
             print >>sys.stderr, 'failed to lower the poem'
             return poem
         
-        def lower_succeed(poem):
-            print 'lower_succeed'
-            return poem
-        
         return d.addErrback(lower_failed)
-        # return d.addCallbacks(lower_succeed, lower_failed)
         
     def got_poem(poem):
         """a callback for getting poems"""
