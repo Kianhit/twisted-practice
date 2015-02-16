@@ -33,18 +33,27 @@ class PoetryFactory(Factory):
 port = 10000
 poetry_file = '../no-twisted/science.txt'
 iface = 'localhost'
+port2 = 10001
+poetry_file2 = '../no-twisted/ecstasy.txt'
 
 top_service = service.MultiService()
+top_service2 = service.MultiService()
 
 poetry_service = PoetryService(poetry_file)     
 poetry_service.setServiceParent(top_service)
+poetry_service2 = PoetryService(poetry_file2)
+poetry_service2.setServiceParent(top_service2) 
 
 factory = PoetryFactory(poetry_service)
+factory2 = PoetryFactory(poetry_service2)
 tcp_service = internet.TCPServer(port, factory, interface=iface)
+tcp_service2 = internet.TCPServer(port2, factory2, interface=iface)
 tcp_service.setServiceParent(top_service)
+tcp_service2.setServiceParent(top_service2)
 
 application = service.Application('fastpoetry-twistd')
 top_service.setServiceParent(application)
+top_service2.setServiceParent(application)
     
 
     
