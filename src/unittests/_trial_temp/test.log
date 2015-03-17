@@ -1,0 +1,16 @@
+2015-03-17 10:42:24+0800 [-] Log opened.
+2015-03-17 10:42:24+0800 [-] Unhandled Error
+	Traceback (most recent call last):
+	  File "/usr/lib64/python2.6/site-packages/Twisted-14.0.2-py2.6-linux-x86_64.egg/twisted/trial/runner.py", line 151, in run
+	    test(result)
+	  File "/usr/lib64/python2.6/site-packages/Twisted-14.0.2-py2.6-linux-x86_64.egg/twisted/trial/_asyncrunner.py", line 59, in __call__
+	    return self.run(result)
+	  File "/usr/lib64/python2.6/site-packages/Twisted-14.0.2-py2.6-linux-x86_64.egg/twisted/trial/_asyncrunner.py", line 69, in run
+	    reporter._AdaptedReporter(result, self.__class__))
+	  File "/usr/lib64/python2.6/unittest.py", line 278, in run
+	    testMethod()
+	--- <exception caught here> ---
+	  File "/home/kian.gao/workspace/twisted-practice/src/unittests/test-samply.py", line 6, in test_failWithLog
+	    1 / 0
+	exceptions.ZeroDivisionError: integer division or modulo by zero
+	
